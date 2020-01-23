@@ -1,0 +1,99 @@
+---
+title: "Untitled"
+author: "Lisa Cortey"
+date: "05/01/2020"
+output: html_document
+---
+
+```{r}
+data <- read.csv2("C:/Users/Lisa/Documents/M1_SSD/Projet_tut/tableau.csv", header = TRUE)
+library(car)
+library(lmtest)
+```
+
+
+## On remplace les NA de la var Premiere_cesure par la moyenne de la var
+```{r}
+data <- replace(data,is.na(data),mean(data$Premiere_cesure,na.rm=TRUE))
+```
+
+
+```{r}
+summary(data)
+```
+
+
+
+#Regression
+```{r}
+Rey.lm <- lm(Reynolds∼.,data)
+summary(Rey.lm)
+```
+Toutes les variables sont significatives à 0.001
+R2 = 0.3061 -> pas très élevé : capacité du modèle à prédire de nouvelles observations
+p-value du test de Fisher de significativité du modèle <2.2e-16
+(H0:β1=…=βp=0 contre H1 : au moins un βj≠0) : On rejette H0 le modèle est signficatif
+
+
+#Test Homoscédasticité
+Test de Breusch-Pagan
+```{r}
+bptest(Rey.lm)
+```
+On rejette H0 les residus n'ont pas la même variance
+le terme d'erreur est heteroscédastique
+
+
+
+
+```{r}
+durbinWatsonTest(Rey.lm)
+```
+Le test de Durbin-Watson confirme l’auto-corrélation des erreurs
+
+#H2 : E(εi)=0 Le modèle est bien spécifié en moyenne 
+```{r}
+mean(Rey.lm$residuals)
+```
+
+
+
+
+
+#Histogramme des residus
+Normalité de la distribution verifié : 
+```{r}
+histo <- hist(Rey.lm$residuals, probability = TRUE)
+ec_typ <- summary(Rey.lm)$sigma
+curve(dnorm(x, 0, ec_typ), from = min(histo$breaks), to = max(histo$breaks), 
+      add = TRUE, type = "l", col = "magenta", lwd = 2)
+```
+
+
+#Verification Normalité des résidus
+
+#Graphique quantile par quantile 	
+
+```{r}
+ec_typ <- summary(Rey.lm)$sigma
+normed_res <- Rey.lm$residuals/ec_typ
+qqnorm(normed_res, xlim = range(normed_res), ylim = range(normed_res))
+abline(0, 1, col = "cadetblue", lwd = 2)
+```
+Normale
+
+#Test de normalité des résidus
+
+```{r}
+shapiro.test(Rey.lm$residuals)
+```
+On rejette H0 pas issus d'une distrib normale
+
+
+```{r}
+plot(data$Reynolds)
+plot(predict(Rey.lm),data$Reynolds)
+abline(0,1)
+```
+Prediction pas bonne, petite ca va grand pas bonne
+
