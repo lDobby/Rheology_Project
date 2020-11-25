@@ -1,0 +1,102 @@
+---
+title: "RIDGE"
+author: "Lisa Cortey"
+date: "03/05/2020"
+output: html_document
+---
+Ridge : désirant conservertoutes les variables explicatives pour des raisons d’interprétation, il est pos-sible d’améliorer les propriétés numériques et la variance des estimations enconsidérant un estimateur biaisé des paramètres par une procédure de régula-risation.
+
+
+
+```{r}
+library(Matrix)
+library(glmnet)
+library(Rarity)
+```
+
+# Données normalisées
+```{r}
+dataR<-read.csv2("C:/Users/Lisa/Documents/M1_SSD/Projet_tut/Rheology_Project/REG1/tableau1.csv", header = TRUE)
+dataR <- na.omit(dataR)
+
+set.seed(22071997)
+idTrain <-sample(1:nrow(dataR),round(nrow(dataR)*0.8),replace=F)
+
+Train <-dataR[idTrain,]
+
+Test <-dataR[-idTrain,]
+summary(dataR_standard)
+
+R.lm <- lm(Reynolds∼.,Train)
+summary(R.lm)
+```
+```{r}
+Ypred <- predict(R.lm,Test[,-1])
+Ytest <- Test$Reynolds
+plot(Ypred,Ytest,xlab="Prediction",ylab="Observation")
+title(main="Prédiction Reynolds jeu de test :\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line = 0.19)
+abline(0,1,col="blue")
+(E1 <-mean(abs(Ypred-Ytest)))
+```
+
+#Régression ridge
+```{r}
+XTrain <- apply(Train[,-1],2,as.numeric)
+YTrain <- lapply(Train[,1],as.numeric)
+
+fit <-glmnet(XTrain,YTrain,alpha=0) #alpha 0 methode ridge
+```
+
+```{r}
+#Df (le nombre de coefficients non nuls), %dev (le pourcentage de déviation expliqué) et Lambda (la valeur correspondante λ)
+print(fit)
+plot(fit)
+```
+
+
+```{r}
+plot(fit, xvar = "lambda", label = TRUE)
+plot(fit, xvar = "dev", label = TRUE)
+```
+
+
+```{r}
+plot(fit, xvar = "lambda", label = TRUE, ylim=c(-0.2,0.2))
+plot(fit, xvar = "lambda", label = TRUE, ylim=c(-0.1,0.1))
+```
+
+
+
+
+```{r}
+#critèe de validation croisé
+cvfit =cv.glmnet(as.matrix(Train[,-1]),as.matrix(Train[,1]), type.measure = "mse", nfolds = 20, alpha=0)
+plot(cvfit)
+```
+
+
+```{r}
+cvfit$lambda.min
+print(log(cvfit$lambda.min))
+```
+```{r}
+#coef.apprx1 =coef(fit, s = "lambda.min", exact = FALSE, x=XTrain, y=YTrain)
+(coef.apprx2 =coef(cvfit, s = "lambda.min", exact = FALSE, x=XTrain, y=YTrain))
+```
+
+
+
+```{r}
+Ypred <- predict(cvfit,newx=as.matrix(Test[,-1]),s="lambda.min")
+Ytest <- as.matrix(Test[,1])
+plot(Ypred,Ytest,xlab="Prediction",ylab="Observation")
+title(main="Prédiction Reynolds jeu de test :\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line = 0.19)
+abline(0,1,col="blue")
+(E1 <-mean(abs(Ypred-Ytest)))
+```
+On passe de 0.19 d'erreur pour la regression avec toutes les variables à 0.50 pour le modèle ridge.
+
+```{r}
+data_cor <- cbind(dataR[,2:8],dataR[,10:15])
+corPlot(data_cor, method = "pearson")
+```

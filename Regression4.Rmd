@@ -1,0 +1,121 @@
+---
+title: "Rhéologie"
+output: html_document
+---
+
+DERNIERE REG EN DATE
+
+#Regression Reynold 
+```{r}
+dataR<-read.csv2("C:/Users/Lisa/Documents/M1_SSD/Projet_tut/Rheology_Project/REG4/tableau4.csv", header = TRUE)
+dataR <- na.omit(dataR)
+
+
+set.seed(22071997)
+idTrain <-sample(1:nrow(dataR),round(nrow(dataR)*0.8),replace=F)
+
+Train <-dataR[idTrain,]
+
+Test <-dataR[-idTrain,]
+summary(dataR)
+
+R.lm <- lm(Reynolds∼.,Train)
+summary(R.lm)
+```
+```{r}
+plot(predict(R.lm),Train$Reynolds,xlab="Prediction",ylab="Observation")
+title(main="Prédiction Reynolds jeu d'entrainement:\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line = 0.19)
+abline(0,1,col="red")
+```
+
+
+```{r}
+Ypred <- predict(R.lm,Test[,-1])
+Ytest <- Test$Reynolds
+plot(Ypred,Ytest,xlab="Prediction",ylab="Observation")
+title(main="Prédiction Reynolds jeu de test :\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line = 0.19)
+abline(0,1,col="blue")
+```
+```{r}
+(E1 <-mean(abs(Ypred-Ytest)))
+```
+
+
+
+```{r}
+dataOut <- data.frame(rep(NA,length(Ytest)),(rep(NA,length(Ytest))),rep(NA,length(Ytest)))
+colnames(dataOut) <- c("Index","Ytest","Ypred")
+for (i in 1:length(Ytest)) {
+  if (Ytest[i] > 0 && Ypred[i] <800) {
+    if (Ytest[i]>(Ypred[i]+100)){
+      dataOut[i,1] <- names(Ypred)[i]
+      dataOut[i,2] <- Ytest[i]
+      dataOut[i,3] <- Ypred[i]
+    }
+  }
+
+    if (Ytest[i]<(Ypred[i]-100)){
+      dataOut[i,1] <- names(Ypred)[i]
+      dataOut[i,2] <- Ytest[i]
+      dataOut[i,3] <- Ypred[i]
+    
+  }
+}
+dataOut <- na.omit(dataOut)
+
+couleur <- c(rep("darkolivegreen2",length(Ytest)))
+couleur[as.numeric(row.names(dataOut))] <- "grey"
+plot(Ypred,Ytest,col=couleur,xlab="Prediction",ylab="Observation")
+title(main="Prédiction Reynolds jeu de test  :\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line=0.19)
+lines((Ytest-E1),Ytest, lty = 5, col = "red",type="l")
+lines((Ytest+E1),Ytest, lty = 5, col = "red",type="l")
+legend("bottomright", legend="intervalle EQM",col="red", lty=2, cex=0.8)
+abline(0,1,col="black")
+```
+
+
+
+```{r}
+couleur <- Test$Amplitude*100
+
+plot(Ypred,Ytest,xlab="Prediction",ylab="Observation",col=rainbow(15)[Test$Amplitude*100])
+title(main="Prédiction Reynolds jeu de test  :\n Amplitude de 0.01 à 0.1 / Reynolds de 100 à 900", line=0.19)
+legend("bottomright",c(paste0("Amplitude =0.0",1:9),paste0("Amplitude =0.",1)),fill=rainbow(15),cex = 0.6)
+abline(0,1,col="black")
+```
+
+
+
+#Erreur moyenne pour 20 germes differents
+```{r}
+Ypred <- predict(R.lm,Test[,-1])
+Ytest <- Test$Reynolds
+
+g <- 22071997
+E1 <- rep(0,20)
+
+for (i in 1:20) {
+  set.seed(g)
+  g <- g+10
+  
+idTrain <-sample(1:nrow(dataR),round(nrow(dataR)*0.8),replace=F)
+
+Train <-dataR[idTrain,]
+
+Test <-dataR[-idTrain,]
+
+R.lm <- lm(Reynolds∼.,Train)
+
+Ypred <- predict(R.lm,Test[,-1])
+Ytest <- Test$Reynolds
+
+E1[i] <- mean(abs(Ypred-Ytest))
+  
+}
+(mean(E1))
+```
+
+
+
+
+
